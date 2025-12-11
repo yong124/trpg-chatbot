@@ -86,17 +86,22 @@ def parse_lorebook(content):
 
         if section_title == '시작 설정':
             settings = {}
-            # 예시: "- **시작 위치:** 신림역 환승 통로"
             import re
-            # 키는 ':' 앞의 마지막 단어 블록으로 가정 (예: "시작 위치")
-            # 값은 ':' 뒤의 모든 내용
-            pattern = re.compile(r'-\s*\*\*(.*?)\*\*:\s*(.*)')
-            for line in section_content.splitlines():
-                match = pattern.match(line)
+            # 각 항목을 분리하는 정규식. 다음 '- **키:**' 패턴이 나타나기 전까지를 하나의 블록으로 봄
+            item_blocks = re.split(r'(?=\s*-\s*\*\*[^:]*?:)', section_content)
+            
+            for block in item_blocks:
+                block = block.strip()
+                if not block:
+                    continue
+
+                # 각 블록에서 키와 값을 추출 (값은 여러 줄일 수 있으므로 re.DOTALL 사용)
+                match = re.search(r'^\s*-\s*\*\*(.*?)\*\*:\s*(.*)', block, re.DOTALL)
                 if match:
                     key = match.group(1).strip()
                     value = match.group(2).strip()
                     settings[key] = value
+            sections[section_title] = settings
             sections[section_title] = settings
         elif section_title:
             sections[section_title] = section_content
