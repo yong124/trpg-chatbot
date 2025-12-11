@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 캐릭터 정보 표시 DOM 요소
     const displayCharName = document.getElementById('display-char-name');
     const displayLocation = document.getElementById('display-location');
+    const displayScenarioState = document.getElementById('display-scenario-state');
     const displayStrength = document.getElementById('display-strength');
     const displayAgility = document.getElementById('display-agility');
     const displayIntelligence = document.getElementById('display-intelligence');
@@ -86,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         displayCharName.textContent = playerCharacter.name;
         displayLocation.textContent = playerCharacter.location || '알 수 없음';
+        displayScenarioState.textContent = playerCharacter.current_scenario_state || '알 수 없음';
         displayStrength.textContent = playerCharacter.stats.strength;
         displayAgility.textContent = playerCharacter.stats.agility;
         displayIntelligence.textContent = playerCharacter.stats.intelligence;

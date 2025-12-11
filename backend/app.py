@@ -184,7 +184,8 @@ def create_character():
         'maxHp': max_hp, # 계산된 값으로 설정
         'sp': max_sp,  # 계산된 값으로 설정
         'maxSp': max_sp,  # 계산된 값으로 설정
-        'location': '신림역 승강장 (어둠 속)' # 초기 위치 명시
+        'location': '신림역 승강장 (어둠 속)', # 초기 위치 명시
+        'current_scenario_state': '신림역 승강장에 도착했습니다. 특별한 위험은 없습니다.' # 초기 시나리오 상태 명시
     }
     # 게임 상태도 세션에서 관리
     session['game_log'] = [f"<strong>GM:</strong> {char_name}님, 새로운 여정을 시작합니다."] # 게임 시작 메시지
@@ -205,6 +206,7 @@ def handle_game_turn():
     player_char = session.get('character_data', DEFAULT_PLAYER_CHARACTER)
     game_log_session = session.get('game_log', [])
     pending_action_for_roll_session = session.get('pending_action_for_roll', None)
+    current_scenario_state = session.get('current_scenario_state', '알 수 없는 상황입니다.')
 
     logger.debug(f"\n--- Backend Turn Start ---")
     logger.debug(f"Current player_char from session: {player_char}")
@@ -283,6 +285,7 @@ def handle_game_turn():
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
             - 현재 위치: {player_char.get('location', '알 수 없음')}
+            - 현재 상황: {current_scenario_state}
             
             당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.
             절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
@@ -300,6 +303,7 @@ def handle_game_turn():
             4.  응답은 반드시 아래 JSON 형식의 마크다운 코드 블록으로만 제공해야 합니다. 다른 어떠한 설명이나 추가 텍스트도 포함하지 마십시오.
             5.  'roll_stat'은 반드시 "strength", "agility", "intelligence", "senses", "willpower" 중 **영어 이름** 하나여야 합니다.
             6.  플레이어가 장소를 이동하여 위치가 확실히 바뀌었다면, JSON의 "new_location" 필드에 새로운 장소 이름을 적으세요. 바뀌지 않았다면 null로 두세요.
+            7.  현재 게임의 전반적인 상황이나 분위기가 크게 변했다면, JSON의 "new_scenario_state" 필드에 현재 상황을 한 문장으로 요약해서 적으세요. 바뀌지 않았다면 null로 두세요.
 
             ```json
             {{
@@ -310,7 +314,8 @@ def handle_game_turn():
                 "sp_change": 0,
                 "add_inventory": [],
                 "remove_inventory": [],
-                "new_location": "플레이어가 이동한 경우 새 장소 이름 (예: '무너진 백화점 1층 로비'), 아니면 null"
+                "new_location": "플레이어가 이동한 경우 새 장소 이름 (예: '무너진 백화점 1층 로비'), 아니면 null",
+                "new_scenario_state": "현재 게임의 상황을 한 문장으로 요약 (예: '플레이어는 포식자와 전투 중'), 아니면 null"
             }}
             ```
             """
@@ -321,6 +326,11 @@ def handle_game_turn():
             if ai_json.get('new_location'):
                 player_char['location'] = ai_json['new_location']
                 logger.info(f"위치 변경됨: {player_char['location']}")
+
+            # [추가] 시나리오 상태 업데이트 로직
+            if ai_json.get('new_scenario_state'):
+                session['current_scenario_state'] = ai_json['new_scenario_state']
+                logger.info(f"시나리오 상태 변경됨: {session['current_scenario_state']}")
 
             # AI 응답에 따른 캐릭터 상태 변경
             player_char = apply_state_changes(player_char, ai_json)
@@ -367,6 +377,7 @@ def handle_game_turn():
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
             - 현재 위치: {player_char.get('location', '알 수 없음')}
+            - 현재 상황: {current_scenario_state}
 
             당신은 플레이어의 이전 행동 선언과 주사위 굴림 결과를 바탕으로 다음 스토리를 생성해야 합니다.
             절대 주사위를 굴리거나 판정 요구를 하지 마십시오. 오직 결과에 따른 스토리 묘사만 하십시오.
@@ -387,6 +398,7 @@ def handle_game_turn():
             3.  스토리 묘사에 따라 플레이어의 상태(HP, SP, 인벤토리)에 변화가 생긴다면, 반드시 JSON의 `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` 필드를 사용하여 그 변화를 표현해야 합니다.
             4.  스토리 묘사 후, 플레이어가 다음에 무엇을 할지 궁금해지도록 자연스럽게 다음 행동이나 선택지를 유도하는 질문을 던져주세요.
             5.  응답은 반드시 아래 JSON 형식의 마크다운 코드 블록으로만 제공해야 합니다. 다른 어떠한 설명이나 추가 텍스트도 포함하지 마십시오.
+            6.  현재 게임의 전반적인 상황이나 분위기가 크게 변했다면, JSON의 "new_scenario_state" 필드에 현재 상황을 한 문장으로 요약해서 적으세요. 바뀌지 않았다면 null로 두세요.
 
             ```json
             {{
@@ -397,7 +409,8 @@ def handle_game_turn():
                 "sp_change": 0,
                 "add_inventory": [],
                 "remove_inventory": [],
-                "new_location": null
+                "new_location": null,
+                "new_scenario_state": "현재 게임의 상황을 한 문장으로 요약 (예: '포식자가 쓰러지고 플레이어가 주변을 조사 중'), 아니면 null"
             }}
             ```
             """
@@ -408,6 +421,11 @@ def handle_game_turn():
             if ai_json.get('new_location'):
                 player_char['location'] = ai_json['new_location']
                 logger.info(f"위치 변경됨: {player_char['location']}")
+
+            # [추가] 시나리오 상태 업데이트 로직
+            if ai_json.get('new_scenario_state'):
+                session['current_scenario_state'] = ai_json['new_scenario_state']
+                logger.info(f"시나리오 상태 변경됨: {session['current_scenario_state']}")
 
             # AI 응답에 따른 캐릭터 상태 변경
             player_char = apply_state_changes(player_char, ai_json)
