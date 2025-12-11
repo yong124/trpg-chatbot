@@ -206,7 +206,6 @@ def handle_game_turn():
     player_char = session.get('character_data', DEFAULT_PLAYER_CHARACTER)
     game_log_session = session.get('game_log', [])
     pending_action_for_roll_session = session.get('pending_action_for_roll', None)
-    current_scenario_state = session.get('current_scenario_state', '알 수 없는 상황입니다.')
 
     logger.debug(f"\n--- Backend Turn Start ---")
     logger.debug(f"Current player_char from session: {player_char}")
@@ -285,7 +284,7 @@ def handle_game_turn():
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
             - 현재 위치: {player_char.get('location', '알 수 없음')}
-            - 현재 상황: {current_scenario_state}
+            - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
             
             당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.
             절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
@@ -329,8 +328,8 @@ def handle_game_turn():
 
             # [추가] 시나리오 상태 업데이트 로직
             if ai_json.get('new_scenario_state'):
-                session['current_scenario_state'] = ai_json['new_scenario_state']
-                logger.info(f"시나리오 상태 변경됨: {session['current_scenario_state']}")
+                player_char['current_scenario_state'] = ai_json['new_scenario_state']
+                logger.info(f"시나리오 상태 변경됨: {player_char['current_scenario_state']}")
 
             # AI 응답에 따른 캐릭터 상태 변경
             player_char = apply_state_changes(player_char, ai_json)
@@ -377,7 +376,7 @@ def handle_game_turn():
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
             - 현재 위치: {player_char.get('location', '알 수 없음')}
-            - 현재 상황: {current_scenario_state}
+            - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
 
             당신은 플레이어의 이전 행동 선언과 주사위 굴림 결과를 바탕으로 다음 스토리를 생성해야 합니다.
             절대 주사위를 굴리거나 판정 요구를 하지 마십시오. 오직 결과에 따른 스토리 묘사만 하십시오.
@@ -424,8 +423,8 @@ def handle_game_turn():
 
             # [추가] 시나리오 상태 업데이트 로직
             if ai_json.get('new_scenario_state'):
-                session['current_scenario_state'] = ai_json['new_scenario_state']
-                logger.info(f"시나리오 상태 변경됨: {session['current_scenario_state']}")
+                player_char['current_scenario_state'] = ai_json['new_scenario_state']
+                logger.info(f"시나리오 상태 변경됨: {player_char['current_scenario_state']}")
 
             # AI 응답에 따른 캐릭터 상태 변경
             player_char = apply_state_changes(player_char, ai_json)
