@@ -83,12 +83,17 @@ def parse_lorebook(content):
 
         if section_title == '시작 설정':
             settings = {}
+            # 예시: "- **시작 위치:** 신림역 환승 통로"
+            import re
+            # 키는 ':' 앞의 마지막 단어 블록으로 가정 (예: "시작 위치")
+            # 값은 ':' 뒤의 모든 내용
+            pattern = re.compile(r'-\s*\*\*(.*?)\*\*:\s*(.*)')
             for line in section_content.splitlines():
-                if ':' in line:
-                    # "- **키:** 값" 형식 처리
-                    key_part, value_part = line.split(':', 1)
-                    key = key_part.replace('-','').replace('*','').strip()
-                    settings[key] = value_part.strip()
+                match = pattern.match(line)
+                if match:
+                    key = match.group(1).strip()
+                    value = match.group(2).strip()
+                    settings[key] = value
             sections[section_title] = settings
         elif section_title:
             sections[section_title] = section_content
