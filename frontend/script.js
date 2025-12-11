@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 캐릭터 정보 표시 DOM 요소
     const displayCharName = document.getElementById('display-char-name');
+    const displayLocation = document.getElementById('display-location');
     const displayStrength = document.getElementById('display-strength');
     const displayAgility = document.getElementById('display-agility');
     const displayIntelligence = document.getElementById('display-intelligence');
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playerCharacter = characterData; // 전역 변수 업데이트
 
         displayCharName.textContent = playerCharacter.name;
+        displayLocation.textContent = playerCharacter.location || '알 수 없음';
         displayStrength.textContent = playerCharacter.stats.strength;
         displayAgility.textContent = playerCharacter.stats.agility;
         displayIntelligence.textContent = playerCharacter.stats.intelligence;
@@ -221,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelector('.tab-button.active').click(); // 캐릭터 탭 활성화
 
                 // 게임 시작 메시지
-                addMessageToLog(`<strong>GM:</strong> ${result.character.name}님, 새로운 여정을 시작합니다. 음산한 낙성대역 승강장에 도착했습니다. 주변을 둘러보시겠습니까?`);
+addMessageToLog(`<strong>GM:</strong> ${result.character.name}님, 새로운 여정을 시작합니다. 음산한 신림역 승강장에 도착했습니다. 주변을 둘러보시겠습니까?`);
             } else {
                 throw new Error('백엔드에서 캐릭터 데이터를 받지 못했습니다.');
             }

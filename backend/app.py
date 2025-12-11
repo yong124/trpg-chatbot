@@ -183,7 +183,8 @@ def create_character():
         'hp': max_hp, # 계산된 값으로 설정
         'maxHp': max_hp, # 계산된 값으로 설정
         'sp': max_sp,  # 계산된 값으로 설정
-        'maxSp': max_sp  # 계산된 값으로 설정
+        'maxSp': max_sp,  # 계산된 값으로 설정
+        'location': '신림역 승강장 (어둠 속)' # 초기 위치 명시
     }
     # 게임 상태도 세션에서 관리
     session['game_log'] = [f"<strong>GM:</strong> {char_name}님, 새로운 여정을 시작합니다."] # 게임 시작 메시지
@@ -281,6 +282,7 @@ def handle_game_turn():
             - HP: {player_char['hp']}/{player_char['maxHp']}
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
+            - 현재 위치: {player_char.get('location', '알 수 없음')}
             
             당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.
             절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
@@ -288,10 +290,7 @@ def handle_game_turn():
             # 게임 설정 (Lorebook):
             {lorebook_content}
 
-            # 현재까지의 주요 게임 기록:
-            {json.dumps(game_log_session[-5:], ensure_ascii=False)}
-
-            # 플레이어의 현재 행동 선언: "{player_action}"
+            {json.dumps(game_log_session[-20:], ensure_ascii=False)}
 
             # GM의 판단 규칙:
             1.  플레이어의 행동이 명확하고 즉각적인 결과가 나온다면(예: 가만히 있는다, 대화한다), 주사위 굴림 없이 결과를 상세히 묘사하고 다음 행동을 유도하세요.
@@ -300,6 +299,7 @@ def handle_game_turn():
             3.  스토리 묘사에 따라 플레이어의 상태(HP, SP, 인벤토리)에 변화가 생긴다면, 반드시 JSON의 `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` 필드를 사용하여 그 변화를 표현해야 합니다.
             4.  응답은 반드시 아래 JSON 형식의 마크다운 코드 블록으로만 제공해야 합니다. 다른 어떠한 설명이나 추가 텍스트도 포함하지 마십시오.
             5.  'roll_stat'은 반드시 "strength", "agility", "intelligence", "senses", "willpower" 중 **영어 이름** 하나여야 합니다.
+            6.  플레이어가 장소를 이동하여 위치가 확실히 바뀌었다면, JSON의 "new_location" 필드에 새로운 장소 이름을 적으세요. 바뀌지 않았다면 null로 두세요.
 
             ```json
             {{
@@ -309,12 +309,18 @@ def handle_game_turn():
                 "hp_change": 0,
                 "sp_change": 0,
                 "add_inventory": [],
-                "remove_inventory": []
+                "remove_inventory": [],
+                "new_location": "플레이어가 이동한 경우 새 장소 이름 (예: '무너진 백화점 1층 로비'), 아니면 null"
             }}
             ```
             """
             response = model.generate_content(prompt, safety_settings=safety_settings)
             ai_json = parse_ai_response(response.text)
+
+            # [추가] 위치 업데이트 로직
+            if ai_json.get('new_location'):
+                player_char['location'] = ai_json['new_location']
+                logger.info(f"위치 변경됨: {player_char['location']}")
 
             # AI 응답에 따른 캐릭터 상태 변경
             player_char = apply_state_changes(player_char, ai_json)
@@ -360,6 +366,7 @@ def handle_game_turn():
             - HP: {player_char['hp']}/{player_char['maxHp']}
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
+            - 현재 위치: {player_char.get('location', '알 수 없음')}
 
             당신은 플레이어의 이전 행동 선언과 주사위 굴림 결과를 바탕으로 다음 스토리를 생성해야 합니다.
             절대 주사위를 굴리거나 판정 요구를 하지 마십시오. 오직 결과에 따른 스토리 묘사만 하십시오.
@@ -368,7 +375,7 @@ def handle_game_turn():
             {lorebook_content}
 
             # 현재까지의 주요 게임 기록:
-            {json.dumps(game_log_session[-5:], ensure_ascii=False)}
+            {json.dumps(game_log_session[-20:], ensure_ascii=False)}
 
             # 플레이어가 시도한 행동: "{pending_action_for_roll_session or '알 수 없는 행동'}"
             # 주사위 굴림 결과: 총합 {total} (첫 번째 주사위: {dice1}, 두 번째 주사위: {dice2}, 적용된 능력치: {stat_name_ko}, 기본 능력치: {stat_value}, 수정치: {modifier} 포함)
@@ -389,12 +396,18 @@ def handle_game_turn():
                 "hp_change": 0,
                 "sp_change": 0,
                 "add_inventory": [],
-                "remove_inventory": []
+                "remove_inventory": [],
+                "new_location": null
             }}
             ```
             """
             response = model.generate_content(prompt, safety_settings=safety_settings)
             ai_json = parse_ai_response(response.text)
+
+            # [추가] 위치 업데이트 로직
+            if ai_json.get('new_location'):
+                player_char['location'] = ai_json['new_location']
+                logger.info(f"위치 변경됨: {player_char['location']}")
 
             # AI 응답에 따른 캐릭터 상태 변경
             player_char = apply_state_changes(player_char, ai_json)
