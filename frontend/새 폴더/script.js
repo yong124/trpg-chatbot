@@ -30,9 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerMaxHpSpan = document.getElementById('player-max-hp');
     const playerSpSpan = document.getElementById('player-sp');
     const playerMaxSpSpan = document.getElementById('player-max-sp');
-    // 추가된 상태 바 DOM 요소
-    const playerHpBar = document.getElementById('player-hp-bar');
-    const playerSpBar = document.getElementById('player-sp-bar');
 
     // --- 게임 상태 변수 ---
     let animationInterval;
@@ -90,19 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
         displaySenses.textContent = playerCharacter.stats.senses;
         displayWillpower.textContent = playerCharacter.stats.willpower;
         
-        // HP/SP 값 업데이트
         playerHpSpan.textContent = playerCharacter.hp;
         playerMaxHpSpan.textContent = playerCharacter.maxHp;
         playerSpSpan.textContent = playerCharacter.sp;
         playerMaxSpSpan.textContent = playerCharacter.maxSp;
-        
-        // HP/SP 바 업데이트
-        const hpPercent = (playerCharacter.hp / playerCharacter.maxHp) * 100;
-        const spPercent = (playerCharacter.sp / playerCharacter.maxSp) * 100;
-        playerHpBar.style.width = `${hpPercent}%`;
-        playerSpBar.style.width = `${spPercent}%`;
-        
-        // 인벤토리 목록 업데이트
+
         const invList = document.getElementById('inventory-list');
         invList.innerHTML = ''; // 기존 목록 초기화
         playerCharacter.inventory.forEach(item => {
@@ -221,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelector('.tab-button.active').click(); // 캐릭터 탭 활성화
 
                 // 게임 시작 메시지
-                addMessageToLog(`<strong>GM:</strong> ${result.character.name}님, 새로운 여정을 시작합니다. 음산한 낙성대역 승강장에 도착했습니다. 주변을 둘러보시겠습니까?`);
+                addMessageToLog(`<strong>GM:</strong> ${result.character.name}님, 새로운 여정을 시작합니다. 어두운 동굴 입구에 도착했습니다. 안으로 들어가시겠습니까?`);
             } else {
                 throw new Error('백엔드에서 캐릭터 데이터를 받지 못했습니다.');
             }
@@ -271,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             // 주사위 굴림이 필요하지 않은 경우에만 입력창을 다시 활성화
             if (!pendingRollStat) {
-                setActionInputState(true, '여기에 행동을 입력하세요 (예: 승강장을 둘러본다)...');
+                setActionInputState(true, '여기에 행동을 입력하세요 (예: 동굴 안으로 들어간다)...');
             }
         }
     }
@@ -309,12 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // 굴림 후에는 항상 행동 입력을 활성화
-            setActionInputState(true, '여기에 행동을 입력하세요 (예: 승강장을 둘러본다)...');
-            
-            // 굴림 후에 또 다른 굴림이 필요한 경우가 있다면 상태를 다시 설정 (AI의 "story" 응답에 따라 결정됨)
-            if (data.require_roll && data.roll_stat) {
-                 setDiceRollAreaState(true, data.roll_stat, data.roll_stat_ko);
-            }
+            setActionInputState(true, '여기에 행동을 입력하세요 (예: 동굴 안으로 들어간다)...');
 
         } catch (error) {
             console.error('Roll Error:', error);
