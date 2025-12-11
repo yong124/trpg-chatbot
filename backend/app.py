@@ -87,27 +87,13 @@ def parse_lorebook(content):
         if section_title == '시작 설정':
             settings = {}
             import re
-            current_key = None
-            current_value_lines = []
-            key_pattern = re.compile(r'^\s*-\s*\*\*(.*?)\*\*:\s*(.*)')
-
-            for line in section_content.splitlines():
-                match = key_pattern.match(line)
-                if match: # 새로운 키 발견
-                    # 이전까지 저장된 키-값을 딕셔너리에 추가
-                    if current_key:
-                        settings[current_key] = '\n'.join(current_value_lines).strip()
-                    
-                    # 새로운 키-값 저장 시작
-                    current_key = match.group(1).strip()
-                    current_value_lines = [match.group(2).strip()]
-                elif current_key: # 키가 없는 라인은 이전 값의 연속으로 처리
-                    current_value_lines.append(line.strip())
-            
-            # 마지막으로 저장된 키-값을 딕셔너리에 추가
-            if current_key:
-                settings[current_key] = '\n'.join(current_value_lines).strip()
-            
+            # 수정된 정규식: 굵은 글씨(**)가 있어도 되고 없어도 되도록 변경
+            # 포맷: - 키: 값  또는  - **키**: 값
+            # (?=\s*-\s*|\Z)는 다음 항목 시작 또는 문자열 끝까지를 값으로 봄
+            pattern = re.compile(r'^\s*-\s*(?:\*\*)?(.*?)(?:\*\*)?:\s*(.*?)(?=\s*-\s*|\Z)', re.DOTALL | re.MULTILINE)
+            matches = pattern.findall(section_content)
+            for key, value in matches: # _는 lookahead 그룹 무시
+                settings[key.strip()] = value.strip()
             sections[section_title] = settings
         elif section_title:
             sections[section_title] = section_content
