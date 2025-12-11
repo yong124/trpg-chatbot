@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statAllocationDiv = document.getElementById('stat-allocation');
     const remainingPointsSpan = document.getElementById('remaining-points');
     const initialInventoryTextarea = document.getElementById('initial-inventory');
+    const charDescriptionTextarea = document.getElementById('char-description'); // Add this line
     const createCharacterBtn = document.getElementById('create-character-btn');
 
     // 캐릭터 정보 표시 DOM 요소
@@ -195,7 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const characterDataToSend = {
             name: name,
             stats: { ...allocatedStats },
-            inventory: initialInventoryTextarea.value.split(',').map(item => item.trim()).filter(item => item)
+            inventory: initialInventoryTextarea.value.split(',').map(item => item.trim()).filter(item => item),
+            description: charDescriptionTextarea.value.trim() // Add this line
         };
 
         // 백엔드로 캐릭터 데이터 전송

@@ -200,6 +200,7 @@ def create_character():
     char_name = data.get('name', DEFAULT_PLAYER_CHARACTER['name'])
     char_stats = data.get('stats', DEFAULT_PLAYER_CHARACTER['stats'])
     char_inventory = data.get('inventory', DEFAULT_PLAYER_CHARACTER['inventory'])
+    char_description = data.get('description', '') # Add this line
 
     # 능력치 기반으로 HP/SP 계산
     resources = calculate_resources(char_stats)
@@ -222,7 +223,8 @@ def create_character():
         'sp': max_sp,  # 계산된 값으로 설정
         'maxSp': max_sp,  # 계산된 값으로 설정
         'location': start_location,
-        'current_scenario_state': start_state
+        'current_scenario_state': start_state,
+        'description': char_description # Add this line
     }
     # 게임 상태도 세션에서 관리
     session['game_log'] = [f"<strong>GM:</strong> {start_message}"] # 로어북 기반 시작 메시지
@@ -330,12 +332,12 @@ def handle_game_turn():
             - 능력치: {player_char['stats']}
             - HP: {player_char['hp']}/{player_char['maxHp']}
             - SP: {player_char['sp']}/{player_char['maxSp']}
-            - 인벤토리: {player_char['inventory']}
-            - 현재 위치: {player_char.get('location', '알 수 없음')}
-            - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
+                        - 인벤토리: {player_char['inventory']}
+                        - 캐릭터 설정: {player_char.get('description', '설정되지 않음')}
+                        - 현재 위치: {player_char.get('location', '알 수 없음')}
+                        - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
             
-            당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.
-            절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
+                        당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.            절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
 
             # 최근 게임 기록:
             {json.dumps(game_log_session[-20:], ensure_ascii=False)}
@@ -432,6 +434,7 @@ def handle_game_turn():
             - HP: {player_char['hp']}/{player_char['maxHp']}
             - SP: {player_char['sp']}/{player_char['maxSp']}
             - 인벤토리: {player_char['inventory']}
+            - 캐릭터 설정: {player_char.get('description', '설정되지 않음')}
             - 현재 위치: {player_char.get('location', '알 수 없음')}
             - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
 
