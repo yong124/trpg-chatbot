@@ -80,6 +80,8 @@ def parse_lorebook(content):
         lines = part.strip().splitlines()
         # 제목에서 '##' 와 앞뒤 공백을 모두 제거
         section_title = lines[0].strip().lstrip('#').strip()
+        # --- 추가된 디버깅 로그 ---
+        logger.info(f"Cleaned section title: '[{section_title}]'")
         section_content = '\n'.join(lines[1:]).strip()
 
         if section_title == '시작 설정':
