@@ -87,21 +87,12 @@ def parse_lorebook(content):
         if section_title == '시작 설정':
             settings = {}
             import re
-            # 각 항목을 분리하는 정규식. 다음 '- **키:**' 패턴이 나타나기 전까지를 하나의 블록으로 봄
-            item_blocks = re.split(r'(?=\s*-\s*\*\*[^:]*?:)', section_content)
-            
-            for block in item_blocks:
-                block = block.strip()
-                if not block:
-                    continue
-
-                # 각 블록에서 키와 값을 추출 (값은 여러 줄일 수 있으므로 re.DOTALL 사용)
-                match = re.search(r'^\s*-\s*\*\*(.*?)\*\*:\s*(.*)', block, re.DOTALL)
-                if match:
-                    key = match.group(1).strip()
-                    value = match.group(2).strip()
-                    settings[key] = value
-            sections[section_title] = settings
+            # - **키:** 값 (값은 다음 '- **' 패턴 또는 문자열 끝 바로 앞까지)
+            # re.DOTALL은 '.'이 줄바꿈 문자를 포함하게 합니다.
+            pattern = re.compile(r'-\s*\*\*(.*?)\*\*:\s*(.*?)(?=\s*-\s*\*\*|\Z)', re.DOTALL)
+            matches = pattern.findall(section_content)
+            for key, value, _ in matches: # The lookahead group is also captured, so we ignore it with _
+                settings[key.strip()] = value.strip()
             sections[section_title] = settings
         elif section_title:
             sections[section_title] = section_content
