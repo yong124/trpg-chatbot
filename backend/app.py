@@ -68,13 +68,44 @@ if not TEST_MODE:
     model = genai.GenerativeModel('models/gemini-2.5-pro')
 
 # --- Lorebook 불러오기 ---
+def parse_lorebook(content):
+    """Parses the lorebook markdown content into a dictionary."""
+    sections = {}
+    # H2 (##)를 기준으로 섹션 분리
+    parts = content.split('\n## ')
+    for part in parts:
+        if not part.strip():
+            continue
+        
+        lines = part.strip().splitlines()
+        section_title = lines[0].strip()
+        section_content = '\n'.join(lines[1:]).strip()
+
+        if section_title == '시작 설정':
+            settings = {}
+            for line in section_content.splitlines():
+                if ':' in line:
+                    # "- **키:** 값" 형식 처리
+                    key_part, value_part = line.split(':', 1)
+                    key = key_part.replace('-','').replace('*','').strip()
+                    settings[key] = value_part.strip()
+            sections[section_title] = settings
+        elif section_title:
+            sections[section_title] = section_content
+            
+    return sections
+
 LOREBOOK_PATH = 'lorebook.md'
-lorebook_content = ""
+LOREBOOK_DATA = {}
 try:
     with open(LOREBOOK_PATH, 'r', encoding='utf-8') as f:
         lorebook_content = f.read()
+        LOREBOOK_DATA = parse_lorebook(lorebook_content)
+        logger.info(f"Lorebook loaded and parsed successfully. Sections: {list(LOREBOOK_DATA.keys())}")
 except FileNotFoundError:
     logger.warning(f"{LOREBOOK_PATH} not found. AI will operate without lorebook context.")
+except Exception as e:
+    logger.error(f"Error parsing lorebook: {e}")
 
 # --- 게임 상태 관리 ---
 # 세션에 캐릭터 데이터가 없을 때 사용될 기본 캐릭터 데이터
@@ -175,6 +206,12 @@ def create_character():
     max_hp = resources['max_hp']
     max_sp = resources['max_sp']
 
+    # 로어북에서 시작 설정 가져오기
+    start_settings = LOREBOOK_DATA.get('시작 설정', {})
+    start_location = start_settings.get('시작 위치', '알 수 없는 장소')
+    start_state = start_settings.get('시작 상황', '알 수 없는 상황')
+    start_message = start_settings.get('시작 메시지', f"{char_name}님, 새로운 여정을 시작합니다.")
+
     # 세션에 캐릭터 데이터 저장
     session['character_data'] = {
         'name': char_name,
@@ -184,11 +221,11 @@ def create_character():
         'maxHp': max_hp, # 계산된 값으로 설정
         'sp': max_sp,  # 계산된 값으로 설정
         'maxSp': max_sp,  # 계산된 값으로 설정
-        'location': '신림역 승강장 (어둠 속)', # 초기 위치 명시
-        'current_scenario_state': '신림역 승강장에 도착했습니다. 특별한 위험은 없습니다.' # 초기 시나리오 상태 명시
+        'location': start_location,
+        'current_scenario_state': start_state
     }
     # 게임 상태도 세션에서 관리
-    session['game_log'] = [f"<strong>GM:</strong> {char_name}님, 새로운 여정을 시작합니다."] # 게임 시작 메시지
+    session['game_log'] = [f"<strong>GM:</strong> {start_message}"] # 로어북 기반 시작 메시지
     session['pending_action_for_roll'] = None
     session.modified = True # 세션이 확실히 저장되도록 보장
 
@@ -196,7 +233,8 @@ def create_character():
     return jsonify({
         "status": "success", 
         "message": "캐릭터가 성공적으로 생성되었습니다.",
-        "character": session['character_data']
+        "character": session['character_data'],
+        "initial_message": f"<strong>GM:</strong> {start_message}"
     })
 
 
@@ -276,8 +314,18 @@ def handle_game_turn():
             
             # 프롬프트에 현재 캐릭터 상태 포함
             prompt = f"""
-            당신은 TRPG 게임의 숙련된 게임 마스터(GM)입니다.
-            플레이어는 핵전쟁 이후 폐허가 된 한국을 배경으로 하는 포스트 아포칼립스 세계의 '수집가'입니다.
+            당신은 TRPG 게임의 숙련된 게임 마스터(GM)입니다. 아래 '게임 설정'을 숙지하고, 그에 맞춰 스토리를 진행하세요.
+
+            # 게임 설정:
+            - 세계관: {LOREBOOK_DATA.get('세계관', '설정되지 않음')}
+            - 배경: {LOREBOOK_DATA.get('배경', '설정되지 않음')}
+            - 플레이어 캐릭터: {LOREBOOK_DATA.get('플레이어 캐릭터', '설정되지 않음')}
+            - 주요 인물 (NPC): {LOREBOOK_DATA.get('주요 인물 (NPC)', '설정되지 않음')}
+
+            # GM 지침:
+            {LOREBOOK_DATA.get('GM 지침', '플레이어의 행동에 맞춰 스토리를 진행하세요.')}
+
+            # 현재 게임 상태:
             현재 플레이어 캐릭터의 이름은 '{player_char['name']}'이고, 상태는 다음과 같습니다:
             - 능력치: {player_char['stats']}
             - HP: {player_char['hp']}/{player_char['maxHp']}
@@ -289,9 +337,7 @@ def handle_game_turn():
             당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.
             절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
 
-            # 게임 설정 (Lorebook):
-            {lorebook_content}
-
+            # 최근 게임 기록:
             {json.dumps(game_log_session[-20:], ensure_ascii=False)}
 
             # GM의 판단 규칙:
@@ -301,8 +347,9 @@ def handle_game_turn():
             3.  스토리 묘사에 따라 플레이어의 상태(HP, SP, 인벤토리)에 변화가 생긴다면, 반드시 JSON의 `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` 필드를 사용하여 그 변화를 표현해야 합니다.
             4.  응답은 반드시 아래 JSON 형식의 마크다운 코드 블록으로만 제공해야 합니다. 다른 어떠한 설명이나 추가 텍스트도 포함하지 마십시오.
             5.  'roll_stat'은 반드시 "strength", "agility", "intelligence", "senses", "willpower" 중 **영어 이름** 하나여야 합니다.
-            6.  플레이어가 장소를 이동하여 위치가 확실히 바뀌었다면, JSON의 "new_location" 필드에 새로운 장소 이름을 적으세요. 바뀌지 않았다면 null로 두세요.
-            7.  현재 게임의 전반적인 상황이나 분위기가 크게 변했다면, JSON의 "new_scenario_state" 필드에 현재 상황을 한 문장으로 요약해서 적으세요. 바뀌지 않았다면 null로 두세요.
+            6.  플레이어가 장소를 이동하여 위치가 확실히 바뀌었다면, 반드시 JSON의 "new_location" 필드에 새로운 장소 이름을 명확히 적으세요. 바뀌지 않았다면 null로 두세요. 이동 중 특별한 사건이 없다면, 다음 목적지에 도착하는 과정을 묘사하고 다음 행동을 유도하세요.
+            7.  현재 게임의 전반적인 상황이나 분위기(예: 전투 발생, 위협 제거, 중요한 단서 발견 등)가 크게 변했다면, 반드시 JSON의 "new_scenario_state" 필드에 현재 상황을 한 문장으로 요약해서 적으세요. 바뀌지 않았다면 null로 두세요.
+            8.  플레이어가 이동을 선언했다면 (예: '어디로 향한다', '이곳을 떠난다'), 새로운 지역으로의 이동 과정을 상세하게 묘사하고, 새로운 지역에 도착했을 때의 상황을 설명하며 다음 행동을 유도하세요. 불필요하게 전투를 유발하지 마세요.
 
             ```json
             {{
@@ -368,8 +415,18 @@ def handle_game_turn():
             stat_name_ko = STAT_MAPPING_KO.get(modifier_stat_name, modifier_stat_name)
 
             prompt = f"""
-            당신은 TRPG 게임의 숙련된 게임 마스터(GM)입니다.
-            플레이어는 핵전쟁 이후 폐허가 된 한국을 배경으로 하는 포스트 아포칼립스 세계의 '수집가'입니다.
+            당신은 TRPG 게임의 숙련된 게임 마스터(GM)입니다. 아래 '게임 설정'을 숙지하고, 그에 맞춰 스토리를 진행하세요.
+
+            # 게임 설정:
+            - 세계관: {LOREBOOK_DATA.get('세계관', '설정되지 않음')}
+            - 배경: {LOREBOOK_DATA.get('배경', '설정되지 않음')}
+            - 플레이어 캐릭터: {LOREBOOK_DATA.get('플레이어 캐릭터', '설정되지 않음')}
+            - 주요 인물 (NPC): {LOREBOOK_DATA.get('주요 인물 (NPC)', '설정되지 않음')}
+
+            # GM 지침:
+            {LOREBOOK_DATA.get('GM 지침', '플레이어의 행동에 맞춰 스토리를 진행하세요.')}
+
+            # 현재 게임 상태:
             현재 플레이어 캐릭터의 이름은 '{player_char['name']}'이고, 상태는 다음과 같습니다:
             - 능력치: {player_char['stats']}
             - HP: {player_char['hp']}/{player_char['maxHp']}
@@ -381,10 +438,7 @@ def handle_game_turn():
             당신은 플레이어의 이전 행동 선언과 주사위 굴림 결과를 바탕으로 다음 스토리를 생성해야 합니다.
             절대 주사위를 굴리거나 판정 요구를 하지 마십시오. 오직 결과에 따른 스토리 묘사만 하십시오.
 
-            # 게임 설정 (Lorebook):
-            {lorebook_content}
-
-            # 현재까지의 주요 게임 기록:
+            # 최근 게임 기록:
             {json.dumps(game_log_session[-20:], ensure_ascii=False)}
 
             # 플레이어가 시도한 행동: "{pending_action_for_roll_session or '알 수 없는 행동'}"

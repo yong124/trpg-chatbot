@@ -224,8 +224,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameContainer.classList.remove('hidden');
                 document.querySelector('.tab-button.active').click(); // 캐릭터 탭 활성화
 
-                // 게임 시작 메시지
-addMessageToLog(`<strong>GM:</strong> ${result.character.name}님, 새로운 여정을 시작합니다. 음산한 신림역 승강장에 도착했습니다. 주변을 둘러보시겠습니까?`);
+                // 게임 시작 메시지 (백엔드에서 받은 동적 메시지 사용)
+                if (result.initial_message) {
+                    addMessageToLog(result.initial_message);
+                }
             } else {
                 throw new Error('백엔드에서 캐릭터 데이터를 받지 못했습니다.');
             }

@@ -1,0 +1,15 @@
+2025-12-12 04:30:13,783 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:30:13,783 - WARNING - lorebook.md not found. AI will operate without lorebook context.
+2025-12-12 04:34:33,459 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:34:33,459 - WARNING - lorebook.md not found. AI will operate without lorebook context.
+2025-12-12 04:37:51,461 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:37:51,483 - WARNING - lorebook.md not found. AI will operate without lorebook context.
+2025-12-12 04:38:48,209 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:45:33,537 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:45:33,537 - INFO - Lorebook loaded and parsed successfully. Sections: ['세계관', '배경: 아카데미아 에로스', '플레이어 캐릭터', '주요 인물 (NPC)']
+2025-12-12 04:47:39,238 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:47:39,238 - WARNING - lorebook.md not found. AI will operate without lorebook context.
+2025-12-12 04:47:51,292 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:47:51,293 - INFO - Lorebook loaded and parsed successfully. Sections: ['세계관', '배경: 아카데미아 에로스', '플레이어 캐릭터', '주요 인물 (NPC)']
+2025-12-12 04:50:16,337 - WARNING - 경고: FLASK_SECRET_KEY 환경 변수가 설정되지 않았습니다. 임시 키를 사용합니다. 서버 재시작 시 세션이 초기화됩니다.
+2025-12-12 04:50:16,338 - INFO - Lorebook loaded and parsed successfully. Sections: ['세계관', '배경: 아카데미아 에로스', '플레이어 캐릭터', '주요 인물 (NPC)']
