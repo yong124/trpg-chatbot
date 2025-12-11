@@ -87,12 +87,27 @@ def parse_lorebook(content):
         if section_title == '시작 설정':
             settings = {}
             import re
-            # - **키:** 값 (값은 다음 '- **' 패턴 또는 문자열 끝 바로 앞까지)
-            # re.DOTALL은 '.'이 줄바꿈 문자를 포함하게 합니다.
-            pattern = re.compile(r'-\s*\*\*(.*?)\*\*:\s*(.*?)(?=\s*-\s*\*\*|\Z)', re.DOTALL)
-            matches = pattern.findall(section_content)
-            for key, value, _ in matches: # The lookahead group is also captured, so we ignore it with _
-                settings[key.strip()] = value.strip()
+            current_key = None
+            current_value_lines = []
+            key_pattern = re.compile(r'^\s*-\s*\*\*(.*?)\*\*:\s*(.*)')
+
+            for line in section_content.splitlines():
+                match = key_pattern.match(line)
+                if match: # 새로운 키 발견
+                    # 이전까지 저장된 키-값을 딕셔너리에 추가
+                    if current_key:
+                        settings[current_key] = '\n'.join(current_value_lines).strip()
+                    
+                    # 새로운 키-값 저장 시작
+                    current_key = match.group(1).strip()
+                    current_value_lines = [match.group(2).strip()]
+                elif current_key: # 키가 없는 라인은 이전 값의 연속으로 처리
+                    current_value_lines.append(line.strip())
+            
+            # 마지막으로 저장된 키-값을 딕셔너리에 추가
+            if current_key:
+                settings[current_key] = '\n'.join(current_value_lines).strip()
+            
             sections[section_title] = settings
         elif section_title:
             sections[section_title] = section_content
