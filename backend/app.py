@@ -95,7 +95,7 @@ def parse_lorebook(content):
             
     return sections
 
-LOREBOOK_PATH = 'lorebook.md'
+LOREBOOK_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lorebook.md')
 LOREBOOK_DATA = {}
 try:
     with open(LOREBOOK_PATH, 'r', encoding='utf-8') as f:
