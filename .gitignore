@@ -1,0 +1,16 @@
+# 민감 정보
+/backend/api_key.env
+
+# 파이썬 가상환경
+/backend/venv/
+
+# 로그 파일
+/backend/debug.log
+
+# 파이썬 캐시
+**/__pycache__/
+*.pyc
+
+# 운영체제 및 IDE 설정 파일
+.DS_Store
+.vscode/
