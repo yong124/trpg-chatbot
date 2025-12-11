@@ -122,7 +122,7 @@ def parse_ai_response(response_text):
 def get_mock_response(turn_type, player_action=None, modifier_stat=None, player_char_name='탐험가'):
     if turn_type == 'action':
         if "살펴" in (player_action or "") or "조사" in (player_action or ""):
-            return { "story": f"[테스트 모드] {player_char_name}님, 낙성대역 승강장을 주의 깊게 살펴보려 합니다. 어둠 속에서 무언가를 찾아내려면 '감각' 판정이 필요합니다.", "require_roll": True, "roll_stat": "senses" }
+            return { "story": f"[테스트 모드] {player_char_name}님, 신림역 승강장을 주의 깊게 살펴보려 합니다. 어둠 속에서 무언가를 찾아내려면 '감각' 판정이 필요합니다.", "require_roll": True, "roll_stat": "senses" }
         elif "문" in (player_action or "") and ("열" in (player_action or "") or "부순다" in (player_action or "")):
              return { "story": f"[테스트 모드] {player_char_name}님, 육중한 문을 열려 합니다. 상당한 힘이 필요해 보입니다. '근력' 판정이 필요합니다.", "require_roll": True, "roll_stat": "strength" }
         else:
