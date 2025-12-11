@@ -214,6 +214,11 @@ def create_character():
 
     # 로어북에서 시작 설정 가져오기
     start_settings = LOREBOOK_DATA.get('시작 설정', {})
+    # --- 디버깅 로그 추가 ---
+    logger.info(f"--- /create-character DEBUG ---")
+    logger.info(f"전체 LOREBOOK_DATA: {LOREBOOK_DATA}")
+    logger.info(f"추출된 start_settings: {start_settings}")
+    # --- 디버깅 로그 끝 ---
     start_location = start_settings.get('시작 위치', '알 수 없는 장소')
     start_state = start_settings.get('시작 상황', '알 수 없는 상황')
     start_message = start_settings.get('시작 메시지', f"{char_name}님, 새로운 여정을 시작합니다.")
