@@ -30,7 +30,7 @@ logger.addHandler(console_handler)
 load_dotenv(dotenv_path='api_key.env')
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000"]) # 프론트엔드 개발 서버 주소 명시
+CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "https://trpg-game-g4qw.onrender.com"]) # 프론트엔드 개발 서버 주소 명시
 # 개발 중에는 모든 출처를 허용하는 것이 편리하지만, 프로덕션에서는 특정 출처만 허용하는 것이 좋습니다.
 # CORS(app, supports_credentials=True, origins=["http://localhost:8000", "http://127.0.0.1:8000", "null"]) # 파일 시스템에서 직접 열 때 "null" origin 발생 가능
 
