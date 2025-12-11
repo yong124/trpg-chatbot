@@ -9,7 +9,7 @@ from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
 # --- 로깅 설정 ---
-LOG_FILE = 'backend/debug.log'
+LOG_FILE = 'debug.log'
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -27,7 +27,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 # --- 초기 설정 ---
-load_dotenv(dotenv_path='backend/api_key.env')
+load_dotenv(dotenv_path='api_key.env')
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000"]) # 프론트엔드 개발 서버 주소 명시
@@ -55,7 +55,7 @@ if not TEST_MODE:
     model = genai.GenerativeModel('models/gemini-2.5-pro')
 
 # --- Lorebook 불러오기 ---
-LOREBOOK_PATH = 'backend/lorebook.md'
+LOREBOOK_PATH = 'lorebook.md'
 lorebook_content = ""
 try:
     with open(LOREBOOK_PATH, 'r', encoding='utf-8') as f:
