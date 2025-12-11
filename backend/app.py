@@ -78,7 +78,8 @@ def parse_lorebook(content):
             continue
         
         lines = part.strip().splitlines()
-        section_title = lines[0].strip()
+        # 제목에서 '##' 와 앞뒤 공백을 모두 제거
+        section_title = lines[0].strip().lstrip('#').strip()
         section_content = '\n'.join(lines[1:]).strip()
 
         if section_title == '시작 설정':
