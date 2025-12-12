@@ -196,6 +196,31 @@ def apply_state_changes(character, changes):
     logger.debug(f"캐릭터 상태 변경 적용됨: {character}")
     return character
 
+def _create_story_summary(player_char, game_log_session):
+    """현재 게임 상태를 기반으로 AI를 위한 요약 객체를 생성합니다."""
+    
+    # 마지막 GM 메시지 추출
+    last_gm_message = "게임 시작."
+    for msg in reversed(game_log_session):
+        if msg.strip().startswith("<strong>GM:"):
+            # HTML 태그 제거
+            last_gm_message = msg.replace("<strong>GM:</strong>", "").strip()
+            break
+            
+    # 해결되지 않은 위협 추론 (간단한 키워드 기반)
+    unresolved_threats = []
+    scenario_state_lower = player_char.get('current_scenario_state', '').lower()
+    if any(keyword in scenario_state_lower for keyword in ["추적", "위협", "전투", "다가오는"]):
+        unresolved_threats.append(player_char.get('current_scenario_state'))
+
+    story_so_far = {
+        "current_goal": player_char.get('current_scenario_state', '플레이어의 다음 행동을 기다리는 중'),
+        "last_key_event": last_gm_message,
+        "unresolved_threats": unresolved_threats if unresolved_threats else ["특별한 위협 없음."],
+        "open_questions": ["다가오는 위협의 정체는 무엇인가?", "이 통로는 어디로 이어지는가?"] # 예시
+    }
+    return story_so_far
+
 
 @app.route('/create-character', methods=['POST'])
 def create_character():
@@ -255,126 +280,60 @@ def create_character():
     })
 
 
-def _build_action_prompt(player_char, game_log_session, player_action):
+def _create_story_summary(player_char, game_log_session):
+    """현재 게임 상태를 기반으로 AI를 위한 요약 객체를 생성합니다."""
+    
+    # 마지막 GM 메시지 추출
+    last_gm_message = "게임 시작."
+    for msg in reversed(game_log_session):
+        if msg.strip().startswith("<strong>GM:"):
+            # HTML 태그 제거
+            last_gm_message = msg.replace("<strong>GM:</strong>", "").strip()
+            break
+            
+    # 해결되지 않은 위협 추론 (간단한 키워드 기반)
+    unresolved_threats = []
+    scenario_state_lower = player_char.get('current_scenario_state', '').lower()
+    if any(keyword in scenario_state_lower for keyword in ["추적", "위협", "전투", "다가오는"]):
+        unresolved_threats.append(player_char.get('current_scenario_state'))
+
+    story_so_far = {
+        "current_goal": player_char.get('current_scenario_state', '플레이어의 다음 행동을 기다리는 중'),
+        "last_key_event": last_gm_message,
+        "unresolved_threats": unresolved_threats if unresolved_threats else ["특별한 위협 없음."],
+        "open_questions": ["다가오는 위협의 정체는 무엇인가?", "이 통로는 어디로 이어지는가?"] # 예시
+    }
+    return story_so_far
+
+def _build_action_prompt(player_char, story_summary, player_action):
     # --- 프롬프트에 사용될 값들을 미리 변수로 추출 ---
     player_action_str = player_action
     current_scenario_state_str = player_char.get('current_scenario_state', 'Unknown')
     current_scene_id = player_char.get('scene_id', 'UNKNOWN_SCENE')
-    # 게임 설정
-    lorebook_worldview = LOREBOOK_DATA.get('세계관', 'Not set')
-    lorebook_background = LOREBOOK_DATA.get('배경', 'Not set')
-    lorebook_gm_directives = LOREBOOK_DATA.get('GM 지침', 'Proceed with the story according to the player\'s actions.')
-    # 현재 게임 상태
-    player_name = player_char['name']
-    player_description = player_char.get('description', 'Not set')
-    player_hp, player_max_hp = player_char['hp'], player_char['maxHp']
-    player_sp, player_max_sp = player_char['sp'], player_char['maxSp']
-    player_inventory = player_char['inventory']
-    player_location = player_char.get('location', 'Unknown')
-    # 최근 게임 기록
-    recent_log_json = json.dumps(game_log_session[-10:], ensure_ascii=False)
+    story_summary_json = json.dumps(story_summary, ensure_ascii=False, indent=2)
 
     return f"""
+# [CONTEXT SUMMARY - PRIMARY DIRECTIVE]
+# You must base your response on the following structured summary of the current situation. This is your primary source of truth.
+{story_summary_json}
+
 # [SCENE LOCK - CRITICAL RULE]
-# You are currently in Scene ID: "{current_scene_id}".
-# You MUST NOT change the location or main objective until this scene is resolved.
-# If a scene change is absolutely necessary, you must do so by providing a new ID in the "new_scene_id" JSON field.
+# You are currently in Scene ID: "{current_scene_id}". Do not change the scene unless the player's action directly causes it.
 
 # [NARRATIVE ANCHOR - ABSOLUTE PRIORITY]
-# Your primary mission this turn is to continue the story based *only* on the following two pieces of information.
+# Your immediate task is to respond to the player's very last action based on the context above.
 # 1. Player's Last Action: "{player_action_str}"
-# 2. Current Problem Being Solved by this Action: "{current_scenario_state_str}"
-# You must generate a story that directly advances the problem described above. Do not introduce unrelated past events, new threats, or new objectives.
+# 2. Based on the "current_goal" from the summary, decide if this action requires a dice roll.
 # All your narrative output for the 'story' field in the JSON response MUST be in Korean.
-
-# --- Game Setting (for context) ---
-# 세계관 (Worldview): {lorebook_worldview}
-# 배경 (Background): {lorebook_background}
-
-# --- GM's Directives (for context) ---
-# GM 지침: {lorebook_gm_directives}
-
-# --- Current Game State (for reference only) ---
-# Player: '{player_name}' ({player_description})
-# HP: {player_hp}/{player_max_hp}, SP: {player_sp}/{player_max_sp}
-# Inventory: {player_inventory}
-# Current Location: {player_location}
-
-# --- Recent Game Log (for reference only) ---
-{recent_log_json}
 
 # --- GM's Judgment Rules ---
-# 1. If the "Player's Last Action" is simple and has an immediate result, describe the result in detail without a dice roll.
-# 2. If the "Player's Last Action" is risky or its success is uncertain, you must demand a dice roll using the most appropriate stat.
-# 3. **CRITICAL:** If you set "require_roll" to `true`, your "story" text MUST end with the exact Korean phrase corresponding to the 'roll_stat'. For example: "...감각 판정이 필요합니다."
-# 4. Your entire response must be a single markdown code block containing only the JSON object.
-# 5. The 'roll_stat' must be one of the following English names: "strength", "agility", "intelligence", "senses", "willpower".
-# 6. If the "Current Problem" ({current_scenario_state_str}) changes significantly due to the action, summarize the new situation in "new_scenario_state".
-# 7. A new "new_scene_id" should only be provided if the player is definitively moving to a new major area or starting a completely new objective.
+# 1. **CRITICAL:** If you set "require_roll" to `true`, your "story" text MUST end with a clear call for a roll. (e.g., "...감각 판정이 필요합니다.")
+# 2. The 'roll_stat' must be one of: "strength", "agility", "intelligence", "senses", "willpower".
+# 3. If the "current_goal" from the summary is resolved or significantly changed by the action, reflect this in the "new_scenario_state".
 
 ```json
 {{
-    "story": "여기에 GM의 다음 상황 묘사나 판정 요구를 상세히 작성합니다.",
-    "require_roll": true or false,
-    "roll_stat": "주사위 굴림이 필요하다면 여기에 필요한 능력치(예: 'strength')를 작성합니다. 필요 없다면 null",
-    "hp_change": 0,
-    "sp_change": 0,
-    "add_inventory": [],
-    "remove_inventory": [],
-    "new_location": "플레이어가 이동한 경우 새 장소 이름 (예: '무너진 백화점 1층 로비'), 아니면 null",
-    "new_scenario_state": "현재 게임의 상황을 한 문장으로 요약 (예: '플레이어는 포식자와 전투 중'), 아니면 null",
-    "new_scene_id": "만약 현재 장면이 명확히 끝나고 새로운 장면으로 전환된다면, 새 Scene ID를 여기에 제공합니다. (예: 'DORIMCHEON_GLACIER'), 아니면 null"
-}}
-```
-"""
-
-def _build_roll_prompt(player_char, game_log_session, roll_info):
-    # --- 프롬프트에 사용될 값들을 미리 변수로 추출 ---
-    pending_action_str = roll_info['pending_action']
-    roll_outcome = roll_info['outcome']
-    # 현재 게임 상태
-    player_name = player_char['name']
-    player_hp, player_max_hp = player_char['hp'], player_char['maxHp']
-    player_sp, player_max_sp = player_char['sp'], player_char['maxSp']
-    player_inventory = player_char['inventory']
-    player_location = player_char.get('location', 'Unknown')
-    # 최근 게임 기록
-    recent_log_json = json.dumps(game_log_session[-10:], ensure_ascii=False)
-
-    return f"""
-# [ROLL CONTINUITY RULE - ABSOLUTE PRIORITY]
-# Your response must be a direct description of the result of the following action.
-# - Action: "{pending_action_str}"
-# - Dice Roll Result: "{roll_outcome}"
-#
-# ❌ Do NOT introduce new events unrelated to this action.
-# ❌ Do NOT time-skip.
-# ❌ Do NOT change the scene.
-# Only describe "how this action ended".
-# All your narrative output for the 'story' field in the JSON response MUST be in Korean.
-
-# --- GM's Story Generation Rules ---
-# 1. Describe the story in an exciting and specific way that fits the "{roll_outcome}".
-# 2. You must clearly state how the "Action" led to the "{roll_outcome}".
-# 3. After describing the story, ask a question to naturally guide the player towards their next action or choice.
-# 4. Your entire response must be a single markdown code block containing only the JSON object.
-# 5. If the overall situation changes significantly, summarize it in "new_scenario_state".
-
-# --- Detailed Dice Roll Breakdown (for reference only) ---
-# Total {roll_info['total']} (Dice 1: {roll_info['dice1']}, Dice 2: {roll_info['dice2']}, Stat: {roll_info['stat_name_ko']}, Modifier: {roll_info['modifier']})
-
-# --- Current Game State (for reference only) ---
-# Player: '{player_name}'
-# HP: {player_hp}/{player_max_hp}, SP: {player_sp}/{player_max_sp}
-# Inventory: {player_inventory}
-# Current Location: {player_location}
-
-# --- Recent Game Log (for reference only) ---
-{recent_log_json}
-
-```json
-{{
-    "story": "여기에 주사위 굴림 결과에 따른 상세한 상황 묘사와 다음 질문을 작성합니다.",
+    "story": "[ 여기에 다음 상황 묘사나 판정 요구를 작성합니다. ]",
     "require_roll": false,
     "roll_stat": null,
     "hp_change": 0,
@@ -382,7 +341,51 @@ def _build_roll_prompt(player_char, game_log_session, roll_info):
     "add_inventory": [],
     "remove_inventory": [],
     "new_location": null,
-    "new_scenario_state": "현재 게임의 상황을 한 문장으로 요약 (예: '포식자가 쓰러지고 플레이어가 주변을 조사 중'), 아니면 null",
+    "new_scenario_state": "[ 여기에 새로운 상황 요약을 작성합니다. ]",
+    "new_scene_id": null
+}}
+```
+"""
+
+def _build_roll_prompt(player_char, story_summary, roll_info):
+    # --- 프롬프트에 사용될 값들을 미리 변수로 추출 ---
+    pending_action_str = roll_info['pending_action']
+    roll_outcome = roll_info['outcome']
+    story_summary_json = json.dumps(story_summary, ensure_ascii=False, indent=2)
+
+    return f"""
+# [CONTEXT SUMMARY - PRIMARY DIRECTIVE]
+# You must base your response on the following structured summary of the current situation.
+{story_summary_json}
+
+# [ROLL CONTINUITY RULE - ABSOLUTE PRIORITY]
+# Your response must be a direct description of the result of the following **specific action**.
+# **Action Being Resolved:** "{pending_action_str}"
+# **Dice Roll Result:** "{roll_outcome}"
+#
+# ❌ Do NOT reference past events from the log. ONLY resolve the action above.
+# Only describe "how this action ended".
+# All your narrative output for the 'story' field in the JSON response MUST be in Korean.
+
+# --- GM's Story Generation Rules ---
+# 1. Describe the story in a way that fits the "{roll_outcome}".
+# 2. Clearly state how the **Action Being Resolved** led to the "{roll_outcome}".
+# 3. After describing the story, ask a question to guide the player's next action.
+
+# --- Detailed Dice Roll Breakdown (for reference only) ---
+# Total {roll_info['total']} (Dice 1: {roll_info['dice1']}, Dice 2: {roll_info['dice2']}, Stat: {roll_info['stat_name_ko']}, Modifier: {roll_info['modifier']})
+
+```json
+{{
+    "story": "[ 여기에 주사위 굴림 결과에 따른 상세한 상황 묘사와 다음 질문을 작성합니다. ]",
+    "require_roll": false,
+    "roll_stat": null,
+    "hp_change": 0,
+    "sp_change": 0,
+    "add_inventory": [],
+    "remove_inventory": [],
+    "new_location": null,
+    "new_scenario_state": "[ 여기에 새로운 상황 요약을 작성합니다. ]",
     "new_scene_id": null
 }}
 ```
@@ -392,7 +395,9 @@ def _handle_action_turn(data, player_char, game_log_session):
     player_action = data.get('player_action', '아무것도 하지 않는다.')
     logger.debug(f"Live AI Mode - Action: {player_action}")
     
-    prompt = _build_action_prompt(player_char, game_log_session, player_action)
+    story_summary = _create_story_summary(player_char, game_log_session)
+    prompt = _build_action_prompt(player_char, story_summary, player_action)
+    
     response = model.generate_content(prompt, safety_settings=safety_settings)
     ai_json = parse_ai_response(response.text)
 
@@ -408,7 +413,7 @@ def _handle_action_turn(data, player_char, game_log_session):
     session['character_data'] = player_char
     
     game_log_session.append(f"플레이어: {player_action}")
-    game_log_session.append(f"GM: {ai_json['story']}")
+    game_log_session.append(f"<strong>GM:</strong> {ai_json['story']}")
     if ai_json.get('require_roll'):
         session['pending_action_for_roll'] = player_action
     
@@ -444,7 +449,9 @@ def _handle_roll_turn(data, player_char, game_log_session, pending_action):
         'dice1': dice1, 'dice2': dice2, 'stat_name_ko': stat_name_ko, 'modifier': modifier
     }
     
-    prompt = _build_roll_prompt(player_char, game_log_session, roll_info)
+    story_summary = _create_story_summary(player_char, game_log_session)
+    prompt = _build_roll_prompt(player_char, story_summary, roll_info)
+
     response = model.generate_content(prompt, safety_settings=safety_settings)
     ai_json = parse_ai_response(response.text)
 
@@ -459,7 +466,7 @@ def _handle_roll_turn(data, player_char, game_log_session, pending_action):
     
     roll_summary = f"GM (판정): {stat_name_ko} 판정 (주사위: {dice1}+{dice2}, 수정치: {modifier}, 총합: {total}) 결과 - {roll_outcome}"
     game_log_session.append(roll_summary)
-    game_log_session.append(f"GM: {ai_json['story']}")
+    game_log_session.append(f"<strong>GM:</strong> {ai_json['story']}")
     session['game_log'] = game_log_session
     session['pending_action_for_roll'] = None
     session.modified = True
