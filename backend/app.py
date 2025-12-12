@@ -305,11 +305,12 @@ def _build_action_prompt(player_char, game_log_session, player_action):
 
 # --- GM's Judgment Rules ---
 # 1. If the "Player's Last Action" is simple and has an immediate result, describe the result in detail without a dice roll.
-# 2. If the "Player's Last Action" is risky or its success is uncertain, you must demand a dice roll using the most appropriate stat (strength, agility, intelligence, senses, or willpower).
-# 3. Your entire response must be a single markdown code block containing only the JSON object.
-# 4. The 'roll_stat' must be one of the following English names: "strength", "agility", "intelligence", "senses", "willpower".
-# 5. If the "Current Problem" ({current_scenario_state_str}) changes significantly due to the action, summarize the new situation in "new_scenario_state".
-# 6. A new "new_scene_id" should only be provided if the player is definitively moving to a new major area or starting a completely new objective.
+# 2. If the "Player's Last Action" is risky or its success is uncertain, you must demand a dice roll using the most appropriate stat.
+# 3. **CRITICAL:** If you set "require_roll" to `true`, your "story" text MUST end with the exact Korean phrase corresponding to the 'roll_stat'. For example: "...감각 판정이 필요합니다."
+# 4. Your entire response must be a single markdown code block containing only the JSON object.
+# 5. The 'roll_stat' must be one of the following English names: "strength", "agility", "intelligence", "senses", "willpower".
+# 6. If the "Current Problem" ({current_scenario_state_str}) changes significantly due to the action, summarize the new situation in "new_scenario_state".
+# 7. A new "new_scene_id" should only be provided if the player is definitively moving to a new major area or starting a completely new objective.
 
 ```json
 {{
