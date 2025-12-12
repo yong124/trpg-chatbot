@@ -8,6 +8,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import re # 정규식 사용을 위해 추가
 
 # --- Gemini API 안전 설정 (검열 해제) ---
 safety_settings = {
@@ -312,7 +313,39 @@ def _build_action_prompt(player_char, story_summary, player_action):
     current_scene_id = player_char.get('scene_id', 'UNKNOWN_SCENE')
     story_summary_json = json.dumps(story_summary, ensure_ascii=False, indent=2)
 
+    # 로어북 GM 지침
+    lorebook_gm_directives = LOREBOOK_DATA.get('GM 지침', 'Proceed with the story according to the player\'s actions.')
+    
+    # 현재 게임 상태 (참고용)
+    player_name = player_char['name']
+    player_description = player_char.get('description', 'Not set')
+    player_hp, player_max_hp = player_char['hp'], player_char['maxHp']
+    player_sp, player_max_sp = player_char['sp'], player_char['maxSp']
+    player_inventory = player_char['inventory']
+    player_location = player_char.get('location', 'Unknown')
+
+    # 부록 섹션에서 '세계관 개요' 내용 추출
+    appendix_full_content = LOREBOOK_DATA.get('부록: 전체 세계관 정보 (Appendix: World Info)', '')
+    world_overview_content = "포스트 아포칼립스 대한민국." # Default fallback
+
+    # 정규식을 사용하여 "### A. 세계관 개요 (World Overview)" 아래의 내용을 추출
+    # '### B. 주요 인물 (Key NPCs)' 또는 문자열 끝까지를 내용으로 간주
+    match = re.search(r'### A\. 세계관 개요 \(World Overview\)\s*\n(.*?)(?=\n### B\. 주요 인물 \(Key NPCs\)|\Z)', appendix_full_content, re.DOTALL)
+    if match:
+        world_overview_content = match.group(1).strip()
+
     return f"""
+# [TRPG GM ROLE]
+# You are the Game Master for a TTRPG set in a post-apocalyptic Korea.
+# Your style must be **dark, atmospheric, and sparse**. Use Korean only.
+# - Always describe the scene based on the current context and the player's action.
+# - Your response must always end with a question or a clear consequence that drives the story forward.
+# - If the player's action requires a check, you **MUST** set "require_roll": true and "roll_stat" to one of: "strength", "agility", "intelligence", "senses", "willpower".
+# - The story's tone must reflect the following world overview:
+
+# [WORLD OVERVIEW - TONE AND SETTING PRIORITY]
+{world_overview_content}
+
 # [CONTEXT SUMMARY - PRIMARY DIRECTIVE]
 # You must base your response on the following structured summary of the current situation. This is your primary source of truth.
 {story_summary_json}
@@ -325,6 +358,15 @@ def _build_action_prompt(player_char, story_summary, player_action):
 # 1. Player's Last Action: "{player_action_str}"
 # 2. Based on the "current_goal" from the summary, decide if this action requires a dice roll.
 # All your narrative output for the 'story' field in the JSON response MUST be in Korean.
+
+# --- GM's Directives (for context) ---
+# GM 지침: {lorebook_gm_directives}
+
+# --- Current Game State (for reference only) ---
+# Player: '{player_name}' ({player_description})
+# HP: {player_hp}/{player_max_hp}, SP: {player_sp}/{player_max_sp}
+# Inventory: {player_inventory}
+# Current Location: {player_location}
 
 # --- GM's Judgment Rules ---
 # 1. **CRITICAL:** If you set "require_roll" to `true`, your "story" text MUST end with a clear call for a roll. (e.g., "...감각 판정이 필요합니다.")
