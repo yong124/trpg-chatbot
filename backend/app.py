@@ -326,42 +326,37 @@ def handle_game_turn():
             
             # 프롬프트에 현재 캐릭터 상태 포함
             prompt = f"""
-            당신은 TRPG 게임의 숙련된 게임 마스터(GM)입니다. 아래 '게임 설정'을 숙지하고, 그에 맞춰 스토리를 진행하세요.
-
-            # 게임 설정:
-            - 세계관: {LOREBOOK_DATA.get('세계관', '설정되지 않음')}
-            - 배경: {LOREBOOK_DATA.get('배경', '설정되지 않음')}
-            - 플레이어 캐릭터: {LOREBOOK_DATA.get('플레이어 캐릭터', '설정되지 않음')}
-            - 주요 인물 (NPC): {LOREBOOK_DATA.get('주요 인물 (NPC)', '설정되지 않음')}
-
-            # GM 지침:
-            {LOREBOOK_DATA.get('GM 지침', '플레이어의 행동에 맞춰 스토리를 진행하세요.')}
-
-            # 현재 게임 상태:
-            현재 플레이어 캐릭터의 이름은 '{player_char['name']}'이고, 상태는 다음과 같습니다:
-            - 능력치: {player_char['stats']}
-            - HP: {player_char['hp']}/{player_char['maxHp']}
-            - SP: {player_char['sp']}/{player_char['maxSp']}
-                        - 인벤토리: {player_char['inventory']}
-                        - 캐릭터 설정: {player_char.get('description', '설정되지 않음')}
-                        - 현재 위치: {player_char.get('location', '알 수 없음')}
-                        - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
+            # [NARRATIVE ANCHOR - ABSOLUTE PRIORITY]
+            # Your primary mission this turn is to continue the story based *only* on the following two pieces of information.
+            # 1. Player's Last Action: "{player_action}"
+            # 2. Current Problem Being Solved by this Action: "{player_char.get('current_scenario_state', 'Unknown')}"
+            # You must generate a story that directly advances the problem described above. Do not introduce unrelated past events, new threats, or new objectives.
+            # All your narrative output for the 'story' field in the JSON response MUST be in Korean.
             
-                        당신은 플레이어의 행동을 듣고, 게임 규칙에 따라 다음 상황을 묘사하고 필요한 경우 판정을 요구해야 합니다.            절대 주사위를 굴리거나 판정 결과를 예측하지 마십시오. 오직 상황 묘사와 판정 요구만 하십시오.
+            # --- Game Setting (for context) ---
+            # 세계관 (Worldview): {LOREBOOK_DATA.get('세계관', 'Not set')}
+            # 배경 (Background): {LOREBOOK_DATA.get('배경', 'Not set')}
 
-            # 최근 게임 기록:
-            {json.dumps(game_log_session[-20:], ensure_ascii=False)}
+            # --- GM's Directives (for context) ---
+            # GM 지침: {LOREBOOK_DATA.get('GM 지침', 'Proceed with the story according to the player's actions.')}
 
-            # GM의 판단 규칙:
-            1.  플레이어의 행동이 명확하고 즉각적인 결과가 나온다면(예: 가만히 있는다, 대화한다), 주사위 굴림 없이 결과를 상세히 묘사하고 다음 행동을 유도하세요.
-            2.  플레이어의 행동이 위험하거나 성공 여부가 불확실하다면, 가장 적절한 능력치(strength, agility, intelligence, senses, willpower 중 하나)를 선택하여 주사위 굴림을 요구하세요.
-                -   예시: "이것을 시도하려면 [능력치] 판정이 필요합니다."
-            3.  스토리 묘사에 따라 플레이어의 상태(HP, SP, 인벤토리)에 변화가 생긴다면, 반드시 JSON의 `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` 필드를 사용하여 그 변화를 표현해야 합니다.
-            4.  응답은 반드시 아래 JSON 형식의 마크다운 코드 블록으로만 제공해야 합니다. 다른 어떠한 설명이나 추가 텍스트도 포함하지 마십시오.
-            5.  'roll_stat'은 반드시 "strength", "agility", "intelligence", "senses", "willpower" 중 **영어 이름** 하나여야 합니다.
-            6.  플레이어가 장소를 이동하여 위치가 확실히 바뀌었다면, 반드시 JSON의 "new_location" 필드에 새로운 장소 이름을 명확히 적으세요. 바뀌지 않았다면 null로 두세요. 이동 중 특별한 사건이 없다면, 다음 목적지에 도착하는 과정을 묘사하고 다음 행동을 유도하세요.
-            7.  현재 게임의 전반적인 상황이나 분위기(예: 전투 발생, 위협 제거, 중요한 단서 발견 등)가 크게 변했다면, 반드시 JSON의 "new_scenario_state" 필드에 현재 상황을 한 문장으로 요약해서 적으세요. 바뀌지 않았다면 null로 두세요.
-            8.  플레이어가 이동을 선언했다면 (예: '어디로 향한다', '이곳을 떠난다'), 새로운 지역으로의 이동 과정을 상세하게 묘사하고, 새로운 지역에 도착했을 때의 상황을 설명하며 다음 행동을 유도하세요. 불필요하게 전투를 유발하지 마세요.
+            # --- Current Game State (for reference only) ---
+            # Player: '{player_char['name']}' ({player_char.get('description', 'Not set')})
+            # HP: {player_char['hp']}/{player_char['maxHp']}, SP: {player_char['sp']}/{player_char['maxSp']}
+            # Inventory: {player_char['inventory']}
+            # Current Location: {player_char.get('location', 'Unknown')}
+            
+            # --- Recent Game Log (for reference only) ---
+            {json.dumps(game_log_session[-10:], ensure_ascii=False)}
+
+            # --- GM's Judgment Rules ---
+            # 1. If the "Player's Last Action" is simple and has an immediate result (e.g., waiting, talking), describe the result in detail without a dice roll and prompt the next action.
+            # 2. If the "Player's Last Action" is risky or its success is uncertain, you must demand a dice roll using the most appropriate stat (strength, agility, intelligence, senses, or willpower).
+            # 3. If the story description causes changes to the player's state (HP, SP, Inventory), you must use the `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` fields in the JSON.
+            # 4. Your entire response must be a single markdown code block containing only the JSON object. Do not include any other text.
+            # 5. The 'roll_stat' must be one of the following English names: "strength", "agility", "intelligence", "senses", "willpower".
+            # 6. If the player moves and their location changes, you must put the new location name in the "new_location" field. If not, keep it null.
+            # 7. If the "Current Problem Being Solved" ({player_char.get('current_scenario_state', 'Unknown')}) changes significantly due to the action, you must summarize the new situation in one sentence in the "new_scenario_state" field. If not, keep it null.
 
             ```json
             {{
@@ -448,23 +443,36 @@ def handle_game_turn():
             - 현재 위치: {player_char.get('location', '알 수 없음')}
             - 현재 상황: {player_char.get('current_scenario_state', '알 수 없음')}
 
-            당신은 플레이어의 이전 행동 선언과 주사위 굴림 결과를 바탕으로 다음 스토리를 생성해야 합니다.
-            절대 주사위를 굴리거나 판정 요구를 하지 마십시오. 오직 결과에 따른 스토리 묘사만 하십시오.
+            # [ROLL CONTINUITY RULE - ABSOLUTE PRIORITY]
+            # Your response must be a direct description of the result of the following action.
+            # - Action: "{pending_action_for_roll_session or 'Unknown action'}"
+            # - Dice Roll Result: "{roll_outcome}"
+            #
+            # ❌ Do NOT introduce new events unrelated to this action.
+            # ❌ Do NOT time-skip.
+            # ❌ Do NOT change the scene.
+            # Only describe "how this action ended".
+            # All your narrative output for the 'story' field in the JSON response MUST be in Korean.
 
-            # 최근 게임 기록:
-            {json.dumps(game_log_session[-20:], ensure_ascii=False)}
+            # --- GM's Story Generation Rules ---
+            # 1. Describe the story in an exciting and specific way that fits the "{roll_outcome}".
+            # 2. You must clearly state how the "Action" led to the "{roll_outcome}".
+            # 3. If the story description causes changes to the player's state (HP, SP, Inventory), you must use the `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` fields in the JSON.
+            # 4. After describing the story, ask a question to naturally guide the player towards their next action or choice.
+            # 5. Your entire response must be a single markdown code block containing only the JSON object. Do not include any other text.
+            # 6. If the overall situation or mood of the game changes significantly, summarize the new situation in one sentence in the "new_scenario_state" field. If not, keep it null.
 
-            # 플레이어가 시도한 행동: "{pending_action_for_roll_session or '알 수 없는 행동'}"
-            # 주사위 굴림 결과: 총합 {total} (첫 번째 주사위: {dice1}, 두 번째 주사위: {dice2}, 적용된 능력치: {stat_name_ko}, 기본 능력치: {stat_value}, 수정치: {modifier} 포함)
-            # 최종 판정: {roll_outcome}
+            # --- Detailed Dice Roll Breakdown (for reference only) ---
+            # Total {total} (Dice 1: {dice1}, Dice 2: {dice2}, Stat: {stat_name_ko}, Base Stat Value: {stat_value}, Modifier: {modifier})
 
-            # GM의 스토리 생성 규칙:
-            1.  '{roll_outcome}' 결과에 걸맞는 흥미진진하고 구체적인 스토리를 묘사해주세요.
-            2.  플레이어의 이전 행동과 주사위 굴림 결과가 스토리 전개에 자연스럽게 녹아들도록 하세요.
-            3.  스토리 묘사에 따라 플레이어의 상태(HP, SP, 인벤토리)에 변화가 생긴다면, 반드시 JSON의 `hp_change`, `sp_change`, `add_inventory`, `remove_inventory` 필드를 사용하여 그 변화를 표현해야 합니다.
-            4.  스토리 묘사 후, 플레이어가 다음에 무엇을 할지 궁금해지도록 자연스럽게 다음 행동이나 선택지를 유도하는 질문을 던져주세요.
-            5.  응답은 반드시 아래 JSON 형식의 마크다운 코드 블록으로만 제공해야 합니다. 다른 어떠한 설명이나 추가 텍스트도 포함하지 마십시오.
-            6.  현재 게임의 전반적인 상황이나 분위기가 크게 변했다면, JSON의 "new_scenario_state" 필드에 현재 상황을 한 문장으로 요약해서 적으세요. 바뀌지 않았다면 null로 두세요.
+            # --- Current Game State (for reference only) ---
+            # Player: '{player_char['name']}'
+            # HP: {player_char['hp']}/{player_char['maxHp']}, SP: {player_char['sp']}/{player_char['maxSp']}
+            # Inventory: {player_char['inventory']}
+            # Current Location: {player_char.get('location', 'Unknown')}
+
+            # --- Recent Game Log (for reference only) ---
+            {json.dumps(game_log_session[-10:], ensure_ascii=False)}
 
             ```json
             {{
