@@ -207,7 +207,9 @@
             padding: 0;
             background-color: var(--color-dark-bg);
             color: var(--color-text-light);
-            min-height: 80vh;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         header {
@@ -217,12 +219,13 @@
             text-align: center;
             border-bottom: 1px solid var(--color-border);
             font-weight: 600;
+            flex-shrink: 0; /* 헤더 크기 고정 */
         }
 
         #main-content {
             display: flex;
-            height: calc(80vh - 61px); /* 헤더 높이 제외 */
-            min-height: 500px;
+            flex-grow: 1; /* 남은 공간 모두 차지 */
+            min-height: 0; /* flex 자식요소의 overflow 방지 */
         }
 
         /* 사이드바 */
@@ -265,7 +268,7 @@
 
         .tab-content {
             padding: 20px;
-            overflow-y: scroll; 
+            overflow-y: auto; /* auto로 변경 */
             flex-grow: 1;
             font-size: 0.95em;
         }
@@ -331,8 +334,6 @@
             flex-grow: 1;
             padding: 20px;
             overflow-y: auto;
-            min-height: 400px; 
-            height: 100%;
             background-color: var(--color-dark-bg);
             line-height: 1.6;
             display: flex;
@@ -370,6 +371,7 @@
             align-items: center;
             border-top: 1px solid var(--color-border);
             background-color: var(--color-mid-bg);
+            flex-shrink: 0; /* 입력 영역 크기 고정 */
         }
 
         #player-action-input {
@@ -449,12 +451,11 @@
             .screen {
                 margin: 0;
                 border-radius: 0;
+                height: 100%; /* 화면 전체 높이 사용 */
             }
             
             #main-content {
                 flex-direction: column;
-                height: 100vh;
-                min-height: auto;
             }
 
             #sidebar {
@@ -462,18 +463,18 @@
                 width: 100%;
                 border-right: none;
                 border-bottom: 1px solid var(--color-border);
-                min-height: 250px;
                 order: 1; 
+                max-height: 40vh; /* 사이드바 최대 높이 제한 */
             }
 
             #chat-area {
-                width: 100%;
-                height: calc(100vh - 250px - 61px); 
                 order: 2; 
+                flex-grow: 1; /* 남은 공간 모두 차지 */
+                min-height: 0; /* overflow 방지 */
             }
 
             #log {
-                height: auto;
+                 /* 불필요한 속성 제거 */
             }
 
             #input-area {
